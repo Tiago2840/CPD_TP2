@@ -88,6 +88,7 @@ if __name__ == "__main__":
         print(client.sub(a=5, b=3))
         print(client.mul(a=3, b=4))
         print(client.div(a=10, b=2))
+        print(client.hello(), "my name is", client.greet("John Doe"))
     except Exception as e:
         print(f"Error: {e}")
 
