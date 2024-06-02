@@ -14,7 +14,6 @@ import unittest
 import functions
 from server import JSONRPCServer
 
-
 # Define server host and port
 SERVER_HOST = '127.0.0.1'
 SERVER_PORT = 8000
@@ -138,9 +137,11 @@ class TestRegisteredFunctions(TestBase):
 
     def testNewFunction(self):
         """Server must register new functions."""
+
         # Register new function
         def square(num):
             return num * num
+
         self.server.register('square', square)
 
         res = self.jsonrpc_req(1, 'square', [2])
@@ -148,6 +149,7 @@ class TestRegisteredFunctions(TestBase):
 
     def testRandomFunction(self):
         """Server must register new functions."""
+
         # Register new function
         def random_function(num):
             return num

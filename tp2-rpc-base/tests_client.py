@@ -11,7 +11,6 @@ import concurrent.futures
 
 from client import JSONRPCClient
 
-
 # Define server host and port
 SERVER_HOST = '127.0.0.1'
 SERVER_PORT = 8000

@@ -1,5 +1,11 @@
+"""
+ Simple JSON-RPC Client
+
+"""
+
 import json
 import socket
+
 
 class JSONRPCClient:
     """The JSON-RPC client."""
@@ -45,22 +51,31 @@ class JSONRPCClient:
         res = json.loads(msg)
 
         if 'error' in res:
-            if res['error']['code'] == -32601:
-                raise AttributeError(res['error']['message'])
-            elif res['error']['code'] == -32602:
-                raise TypeError(res['error']['message'])
+            code = res['error']['code']
+            message = res['error']['message']
+            if code == -32601:
+                raise AttributeError(message)
+            elif code == -32602:
+                raise TypeError(message)
+            elif code == -32700:
+                raise ParseError(message)
+            elif code == -32600:
+                raise InvalidRequestError(message)
             else:
-                raise Exception(res['error']['message'])
+                raise ServerError(message)
 
         return res['result']
 
     def __getattr__(self, name):
         """Invokes a generic function."""
+
         def inner(*args, **kwargs):
             if kwargs:
                 return self.invoke(name, kwargs)
             return self.invoke(name, args)
+
         return inner
+
 
 if __name__ == "__main__":
     # Test the JSONRPCClient class
@@ -77,3 +92,24 @@ if __name__ == "__main__":
         print(f"Error: {e}")
 
     client.close()
+
+
+## CUSTOM EXCEPTIONS
+class JSONRPCError(Exception):
+    """Base class for JSON-RPC errors."""
+    pass
+
+
+class ParseError(JSONRPCError):
+    """Raised when there is a parse error in the JSON-RPC request."""
+    pass
+
+
+class InvalidRequestError(JSONRPCError):
+    """Raised when the request is invalid."""
+    pass
+
+
+class ServerError(JSONRPCError):
+    """Raised when the server encounters an error."""
+    pass

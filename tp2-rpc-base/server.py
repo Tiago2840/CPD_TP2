@@ -1,7 +1,13 @@
-import functions
+"""
+ Simple JSON-RPC Server
+
+"""
+
 import json
 import socket
-import inspect
+
+import functions
+
 
 class JSONRPCServer:
     """The JSON-RPC server."""
@@ -50,75 +56,87 @@ class JSONRPCServer:
                 return
             print('Received:', msg)
 
-            try:
-                req = json.loads(msg)
-                if 'jsonrpc' not in req or 'method' not in req:
-                    raise ValueError('Invalid Request')
-
-                method = req['method']
-                params = req.get('params', [])
-                request_id = req.get('id')
-
-                if method in self.funcs:
-                    try:
-                        func = self.funcs[method]
-                        if isinstance(params, dict):
-                            result = func(**params)
-                        else:
-                            result = func(*params)
-                        res = {
-                            'jsonrpc': '2.0',
-                            'id': request_id,
-                            'result': result
-                        } if request_id is not None else None
-                    except TypeError:
-                        res = {
-                            'jsonrpc': '2.0',
-                            'id': request_id,
-                            'error': {
-                                'code': -32602,
-                                'message': 'Invalid params'
-                            }
-                        } if request_id is not None else None
-                else:
-                    res = {
-                        'jsonrpc': '2.0',
-                        'id': request_id,
-                        'error': {
-                            'code': -32601,
-                            'message': 'Method not found'
-                        }
-                    } if request_id is not None else None
-
-            except json.JSONDecodeError:
-                res = {
-                    'jsonrpc': '2.0',
-                    'id': None,
-                    'error': {
-                        'code': -32700,
-                        'message': 'Parse error'
-                    }
-                }
-            except ValueError as e:
-                res = {
-                    'jsonrpc': '2.0',
-                    'id': None,
-                    'error': {
-                        'code': -32600,
-                        'message': str(e)
-                    }
-                }
-
+            _, res = self.process_request(msg)
             if res is not None:
-                res = json.dumps(res)
-                conn.sendall(res.encode())
+                conn.sendall(json.dumps(res).encode())
 
         except socket.error as e:
             print(f"Socket error: {e}")
-            return
         except Exception as e:
             print(f"Unexpected error: {e}")
-            return
+
+    def process_request(self, msg):
+        try:
+            req = json.loads(msg)
+            if 'jsonrpc' not in req or 'method' not in req:
+                raise ValueError('Invalid Request')
+
+            method = req['method']
+            params = req.get('params', [])
+            request_id = req.get('id')
+
+            if method in self.funcs:
+                return req, self.execute_method(method, params, request_id)
+            else:
+                return req, self.method_not_found(request_id)
+
+        except json.JSONDecodeError:
+            return None, self.json_parse_error()
+        except ValueError as e:
+            return None, self.invalid_request(str(e))
+
+    def execute_method(self, method, params, request_id):
+        try:
+            func = self.funcs[method]
+            if isinstance(params, dict):
+                result = func(**params)
+            else:
+                result = func(*params)
+            return {
+                'jsonrpc': '2.0',
+                'id': request_id,
+                'result': result
+            } if request_id is not None else None
+        except TypeError:
+            return {
+                'jsonrpc': '2.0',
+                'id': request_id,
+                'error': {
+                    'code': -32602,
+                    'message': 'Invalid params'
+                }
+            } if request_id is not None else None
+
+    def method_not_found(self, request_id):
+        return {
+            'jsonrpc': '2.0',
+            'id': request_id,
+            'error': {
+                'code': -32601,
+                'message': 'Method not found'
+            }
+        } if request_id is not None else None
+
+    def json_parse_error(self):
+        return {
+            'jsonrpc': '2.0',
+            'id': None,
+            'error': {
+                'code': -32700,
+                'message': 'Parse error'
+            }
+        }
+
+    def invalid_request(self, message):
+        return {
+            'jsonrpc': '2.0',
+            'id': None,
+            'error': {
+                'code': -32600,
+                'message': message
+            }
+        }
+
 
 if __name__ == "__main__":
     server = JSONRPCServer('0.0.0.0', 8000)
