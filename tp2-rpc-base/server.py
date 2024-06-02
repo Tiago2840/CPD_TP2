@@ -29,7 +29,7 @@ class JSONRPCServer:
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.bind((self.host, self.port))
         self.sock.listen(1)
-        print('Listening on port %s ...' % self.port)
+        print(f"Listening on port {self.port} ...")
 
         try:
             while not self.shutdown_flag:
