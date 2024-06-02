@@ -56,8 +56,10 @@ class JSONRPCClient:
 
     def __getattr__(self, name):
         """Invokes a generic function."""
-        def inner(*params):
-            return self.invoke(name, params)
+        def inner(*args, **kwargs):
+            if kwargs:
+                return self.invoke(name, kwargs)
+            return self.invoke(name, args)
         return inner
 
 if __name__ == "__main__":
@@ -66,11 +68,11 @@ if __name__ == "__main__":
 
     try:
         print(client.hello())
-        # print(client.greet("John Doe"))
-        # print(client.add(2, 3))
-        # print(client.sub(5, 3))
-        # print(client.mul(3, 4))
-        # print(client.div(10, 2))
+        print(client.greet(name="John Doe"))
+        print(client.add(a=2, b=3))
+        print(client.sub(a=5, b=3))
+        print(client.mul(a=3, b=4))
+        print(client.div(a=10, b=2))
     except Exception as e:
         print(f"Error: {e}")
 

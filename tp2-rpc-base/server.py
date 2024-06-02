@@ -1,6 +1,7 @@
 import functions
 import json
 import socket
+import inspect
 
 class JSONRPCServer:
     """The JSON-RPC server."""
@@ -60,7 +61,11 @@ class JSONRPCServer:
 
                 if method in self.funcs:
                     try:
-                        result = self.funcs[method](*params)
+                        func = self.funcs[method]
+                        if isinstance(params, dict):
+                            result = func(**params)
+                        else:
+                            result = func(*params)
                         res = {
                             'jsonrpc': '2.0',
                             'id': request_id,
