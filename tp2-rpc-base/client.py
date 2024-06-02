@@ -1,5 +1,6 @@
 """
- JSON-RPC Client
+ Simple JSON-RPC Client
+
 """
 
 import json
@@ -10,12 +11,21 @@ class JSONRPCClient:
     """The JSON-RPC client."""
 
     def __init__(self, host, port):
-        self.host = host
-        self.port = port
-        self.request_id = 0  # Inicializa request_id corretamente
+        self.sock = socket.socket()
+        self.sock.connect((host, port))
+        self.request_id = 0
 
-    def call(self, method, *params):
-        """Calls a JSON-RPC method."""
+    def close(self):
+        """Closes the connection."""
+        self.sock.close()
+
+    def send(self, msg):
+        """Sends a message to the server."""
+        self.sock.sendall(msg.encode())
+        return self.sock.recv(1024).decode()
+
+    def invoke(self, method, params):
+        """Invokes a remote function."""
         self.request_id += 1
         req = {
             'jsonrpc': '2.0',
@@ -23,20 +33,8 @@ class JSONRPCClient:
             'method': method,
             'params': params
         }
-        msg = json.dumps(req)
-
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-            sock.connect((self.host, self.port))
-            sock.sendall(msg.encode())
-
-            response = b""
-            while True:
-                part = sock.recv(4096)
-                response += part
-                if len(part) < 4096:
-                    break
-
-        res = json.loads(response.decode())
+        msg = self.send(json.dumps(req))
+        res = json.loads(msg)
 
         if 'error' in res:
             if res['error']['code'] == -32601:
@@ -49,13 +47,15 @@ class JSONRPCClient:
         return res['result']
 
     def __getattr__(self, name):
-        def method(*params):
-            return self.call(name, *params)
-
-        return method
+        """Invokes a generic function."""
+        def inner(*params):
+            return self.invoke(name, params)
+        return inner
 
 
 if __name__ == "__main__":
+
+    # Test the JSONRPCClient class
     client = JSONRPCClient('127.0.0.1', 8000)
 
     try:
@@ -67,3 +67,5 @@ if __name__ == "__main__":
         print(client.div(10, 2))
     except Exception as e:
         print(f"Error: {e}")
+
+    client.close()

@@ -1,5 +1,5 @@
 """
- Simple JSON-RPC Server
+Simple JSON-RPC Server
 """
 
 import functions
@@ -48,19 +48,19 @@ class JSONRPCServer:
     def handle_client(self, conn):
         """Handles the client connection."""
         try:
-            msg = conn.recv(4096).decode()
+            msg = conn.recv(1024).decode()
             if not msg:
                 return
             print('Received:', msg)
 
             try:
                 req = json.loads(msg)
-                if 'jsonrpc' not in req or 'method' not in req or 'id' not in req:
+                if 'jsonrpc' not in req or 'method' not in req:
                     raise ValueError('Invalid Request')
 
                 method = req['method']
                 params = req.get('params', [])
-                request_id = req['id']
+                request_id = req.get('id')
 
                 if method in self.funcs:
                     try:
@@ -69,7 +69,7 @@ class JSONRPCServer:
                             'jsonrpc': '2.0',
                             'id': request_id,
                             'result': result
-                        }
+                        } if request_id is not None else None
                     except TypeError:
                         res = {
                             'jsonrpc': '2.0',
@@ -78,7 +78,7 @@ class JSONRPCServer:
                                 'code': -32602,
                                 'message': 'Invalid params'
                             }
-                        }
+                        } if request_id is not None else None
                 else:
                     res = {
                         'jsonrpc': '2.0',
@@ -87,7 +87,7 @@ class JSONRPCServer:
                             'code': -32601,
                             'message': 'Method not found'
                         }
-                    }
+                    } if request_id is not None else None
 
             except json.JSONDecodeError:
                 res = {
@@ -108,14 +108,14 @@ class JSONRPCServer:
                     }
                 }
 
-            res = json.dumps(res)
-            conn.sendall(res.encode())
+            if res is not None:
+                res = json.dumps(res)
+                conn.sendall(res.encode())
 
         except socket.error as e:
             print(f"Socket error: {e}")
         except Exception as e:
             print(f"Unexpected error: {e}")
-
 
 if __name__ == "__main__":
     server = JSONRPCServer('0.0.0.0', 8000)
