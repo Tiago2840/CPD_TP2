@@ -1,11 +1,6 @@
-"""
-Simple JSON-RPC Server
-"""
-
 import functions
 import json
 import socket
-
 
 class JSONRPCServer:
     """The JSON-RPC server."""
@@ -15,6 +10,7 @@ class JSONRPCServer:
         self.port = port
         self.sock = None
         self.funcs = {}
+        self.shutdown_flag = False
 
     def register(self, name, function):
         """Registers a function."""
@@ -29,12 +25,11 @@ class JSONRPCServer:
         print('Listening on port %s ...' % self.port)
 
         try:
-            while True:
+            while not self.shutdown_flag:
                 conn, addr = self.sock.accept()
                 print(f"Connection from {addr}")
                 self.handle_client(conn)
                 conn.close()
-
         except ConnectionAbortedError:
             pass
         except OSError:
@@ -42,6 +37,7 @@ class JSONRPCServer:
 
     def stop(self):
         """Stops the server."""
+        self.shutdown_flag = True
         if self.sock:
             self.sock.close()
 
@@ -114,8 +110,10 @@ class JSONRPCServer:
 
         except socket.error as e:
             print(f"Socket error: {e}")
+            return
         except Exception as e:
             print(f"Unexpected error: {e}")
+            return
 
 if __name__ == "__main__":
     server = JSONRPCServer('0.0.0.0', 8000)
